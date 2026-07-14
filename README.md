@@ -57,7 +57,7 @@
 > The executable is statically linked — no additional dependencies required. Just download and run!
 
 1. Go to the [Releases](https://github.com/DornGames/PlaneWar/releases) page
-2. Download the latest `PlaneWar.exe`
+2. Download the latest `Plane_War.exe`
 3. Double-click the `.exe` to launch the game
 
 No installation, no runtime libraries, no extra files — just one `.exe` and you're ready to fly!
@@ -159,7 +159,7 @@ This project is licensed under the **MIT License** — a permissive open-source 
 > 可执行文件采用静态链接编译，无需安装额外运行库，下载即可运行。
 
 1. 前往本仓库的 [Releases](https://github.com/DornGames/PlaneWar/releases) 页面
-2. 下载最新的 `PlaneWar.exe` 文件
+2. 下载最新的 `Plane_War.exe` 文件
 3. 双击 `.exe` 文件即可启动游戏
 
 无需安装、无需配置、无需额外文件 —— 一个 `.exe` 就够了！
