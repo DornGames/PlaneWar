@@ -116,7 +116,6 @@ This project is licensed under the **MIT License** — a permissive open-source 
 
 A toast with Prickly Pear juice!
 Dorn Games & Dorn Hub
-```
 
 ---
 
@@ -238,4 +237,3 @@ Dorn Games & Dorn Hub
 
 敬上一杯刺梨汁！
 Dorn Games & Dorn Hub
-```
