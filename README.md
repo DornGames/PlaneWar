@@ -1,98 +1,88 @@
-# ✈️ Plane War
-
-> A classic vertical-scrolling shoot 'em up built with C++ and EasyX — dodge enemies, level up your firepower, and defeat the boss!
-
-🎮 **Download:** Grab the latest `.exe` from [Releases](https://github.com/DornGames/PlaneWar/releases)  
-📦 **Repository:** [https://github.com/DornGames/PlaneWar](https://github.com/DornGames/PlaneWar)  
-📬 **Contact:** Go to Issues.
+# Plane War
 
 ---
 
-## 🎯 About the Game
+## About the Game
 
-**Plane War** is a classic arcade-style vertical shooter. Take control of your fighter jet, shoot down waves of enemy aircraft, collect power-ups, and defeat the boss to advance to the next level. With smooth 60 FPS gameplay, dynamic difficulty scaling, and rich visual effects — all drawn with primitive graphics — this game delivers a nostalgic yet polished shoot 'em up experience.
+**Plane War** is a complete vertical-scrolling shoot 'em up game built with C++ and the EasyX graphics library. Take control of your fighter jet, shoot down waves of enemy aircraft, collect power-ups, defeat bosses, and climb the leaderboard. All graphics are rendered using primitive drawing functions, delivering a nostalgic arcade experience with smooth 60 FPS gameplay.
 
 ---
 
-## 🕹️ Gameplay Features
+### Features
 
-| Feature | Description |
+| Category | Features |
 | :--- | :--- |
-| 🎮 **4 Game States** | Menu → Playing → Pause → Game Over, with smooth transitions |
-| 🌟 **Parallax Starfield** | Multi-layer scrolling stars + gradient background for immersive depth |
-| ✈️ **Player Aircraft** | Free movement, engine flame animation, invincibility flicker after hit |
-| 🔫 **Firepower System** | 4 power levels with distinct bullet patterns — pick up blue arrows to upgrade |
-| 👾 **3 Enemy Types** | Small / Medium / Large — large enemies fire back at you |
-| 👹 **Boss Battles** | One boss per level with health bar, horizontal movement, and fan-shaped bullet hell |
-| 💊 **Item System** | Health (heart), Power-up (blue arrow), Bomb (black bomb) |
-| 💣 **Bomb Mechanism** | Screen clear + damage to all enemies on screen |
-| 💥 **Explosion Effects** | Shockwave rings + core glow + flying particles |
-| 📊 **HUD Panel** | Score, lives (hearts), bombs, level, high score |
-| 📈 **Dynamic Difficulty** | Enemy speed and spawn rate increase with each level |
+| 🎮 **Game States** | Main Menu → Playing → Paused (with Info Panel) → Game Over / Victory |
+| ✈️ **Player System** | WASD/Arrow key movement, lives (upgradeable cap to 5), invincibility after hit, engine flame animation |
+| 🔫 **Firepower System** | 3 fire levels (single/double/triple spread), permanent damage upgrade (max level 4) |
+| 👾 **Enemy System** | 7 enemy types: Normal / Fast / Shooter / Zigzag / Tank / Diver / Strafer, each with unique movement and attack patterns |
+| 👹 **Boss Battles** | One boss per level with health bar, 6 attack patterns (Ring / Aim / Spiral / Petal / Laser / Summon) |
+| 💊 **Item System** | 4 temporary items (Fire Up / Heal / Shield / Bomb) + 2 permanent rare items (Max Life / Power Up) |
+| 💥 **Visual Effects** | Explosion particles, hit flash, screen shake, laser ultimate, shield aura, parallax scrolling starfield |
+| 📊 **HUD** | Score, lives (heart icons), level, firepower level, bomb count, energy bar (ultimate) |
+| 🏆 **Leaderboard** | Local file storage, top 10 scores with player names |
+| 📖 **Enemy Codex** | Press I while paused to view player stats and enemy data for current level |
 
 ---
 
-## 🎮 Controls
+### Controls
 
 | Key | Action |
 | :--- | :--- |
-| `↑` `↓` `←` `→` / `W` `A` `S` `D` | Move aircraft |
-| (Auto-fire) | No key needed — fires continuously |
-| `X` | Release bomb (screen clear) |
+| `W` `A` `S` `D` / `↑` `←` `↓` `→` | Move aircraft (8-directional) |
+| `Space` | Auto-fire (hold down) |
+| `X` | Release laser ultimate (requires full energy) |
+| `R` | Dash (quick directional dash + brief invincibility) |
+| `B` | Drop bomb (screen clear + damage to boss) |
 | `P` | Pause / Resume |
-| `Space` | Start game / Restart |
-| `ESC` | Return to menu / Quit game |
+| `I` | Toggle Info Panel (while paused) |
+| `Enter` / `Space` | Start game / Return to menu (on result screens) |
+| `ESC` | Return to main menu / Quit game |
 
 ---
 
-## 🛠️ Tech Stack
+### Tech Stack
 
-- **Language:** C++
+- **Language:** C++ (C++11 and above)
 - **Graphics Library:** EasyX (https://easyx.cn)
-- **Platform:** Windows (GDI-based)
-- **Build System:** Visual Studio
+- **Platform:** Windows
+- **IDE:** Visual Studio
 - **Rendering:** Double-buffered batch drawing, 60 FPS target
+- **Audio:** Optional (controlled by `ENABLE_SOUND` macro), uses `winmm.lib` for `.wav` playback
 
 ---
 
-## 📥 How to Download & Play
+### Download & Play
 
-> **Note:** The executable is statically linked — no additional dependencies required. Just download and run!
+> The executable is statically linked — no additional dependencies required. Just download and run!
 
-1. Go to the [Releases](https://github.com/DornGames/PlaneWar/releases) page of this repository
-2. Download the latest `PlaneWar.exe` file
+1. Go to the [Releases](https://github.com/DornGames/PlaneWar/releases) page
+2. Download the latest `PlaneWar.exe`
 3. Double-click the `.exe` to launch the game
 
-No installation, no runtime libraries, no extra files needed — just one `.exe` and you're ready to fly!
+No installation, no runtime libraries, no extra files — just one `.exe` and you're ready to fly!
 
 ---
 
-## 🔧 Build from Source
+### Build from Source
 
-If you prefer to build the game yourself:
+**Prerequisites:**
+- Visual Studio (2019 or later) with "Desktop development with C++" workload
+- EasyX graphics library (download from https://easyx.cn)
 
-1. **Install Visual Studio** (2019 or later) with C++ desktop development workload
-2. **Install EasyX** from https://easyx.cn
-3. Clone this repository
-4. Open the `.cpp` file in Visual Studio
-5. Set configuration to **Release** and platform to **x64** (or **x86**)
-6. Build the project (`Ctrl + Shift + B`)
-7. The `.exe` will be generated in the `Release` folder
+**Steps:**
+1. Clone this repository
+2. Open the `.cpp` file in Visual Studio
+3. Set character set to **Use Multi-Byte Character Set** or enable `/utf-8` option
+4. Switch configuration to **Release**, platform to **x64** (or **x86**)
+5. Build the project (`Ctrl + Shift + B`)
+6. The `.exe` will be generated in the `Release` folder
 
 > **Note:** The code uses `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")` to hide the console window, so the game runs as a pure GUI application.
 
 ---
 
-## 📜 Guidelines
-
-- ✅ Fan content only — no commercial use
-- ✅ Feel free to fork, learn, and modify
-- ✅ Keep code clean and well-commented if contributing
-- ❌ No NSFW or offensive content
-
----
-
-## 🏢 Team
+### Team & Copyright
 
 **Sub-Team:** DornGames  
 **Copyright © 2023-2026 DornGames. All Rights Reserved.**
@@ -102,7 +92,7 @@ If you prefer to build the game yourself:
 
 ---
 
-## ©️ License
+### License
 
 This project is licensed under the **MIT License** — a permissive open-source license that allows anyone to use, copy, modify, merge, publish, distribute, sublicense, and sell copies of the software, with minimal restrictions.
 
@@ -110,110 +100,91 @@ This project is licensed under the **MIT License** — a permissive open-source 
 
 ---
 
-*Last updated: July 14, 2026*
+# 飞机大战
 
 ---
 
-A toast with Prickly Pear juice!
-Dorn Games & Dorn Hub
+## 关于游戏
+
+**《飞机大战》** 是一款基于 C++ 和 EasyX 图形库开发的完整纵版飞行射击游戏。操控你的战机，击落一波波敌机，收集道具强化自身，击败每关的 Boss，冲击排行榜。所有图形均使用绘图基元渲染，带来流畅 60 FPS 的复古街机体验。
 
 ---
 
-# ✈️ 飞机大战
+### 功能特性
 
-> 一款基于 C++ 和 EasyX 的经典竖版射击游戏 — 躲避敌机、升级火力、击败 BOSS！
-
-🎮 **下载：** 从 [Releases](https://github.com/DornGames/PlaneWar/releases) 获取最新 `.exe`  
-📦 **仓库地址：** [https://github.com/DornGames/PlaneWar](https://github.com/DornGames/PlaneWar)  
-📬 **联系方式：** 前往Issues。
-
----
-
-## 🎯 关于游戏
-
-**《飞机大战》** 是一款经典的街机风格竖版射击游戏。操控你的战机，击落一波波敌机，拾取道具升级火力，击败 BOSS 进入下一关。游戏以流畅的 60 FPS 运行，难度动态提升，特效全部由图形基元绘制，带来复古而精致的射击游戏体验。
-
----
-
-## 🕹️ 游戏特色
-
-| 特色 | 描述 |
+| 类别 | 功能 |
 | :--- | :--- |
-| 🎮 **4 种游戏状态** | 菜单 → 游戏 → 暂停 → 结束，切换流畅 |
-| 🌟 **视差星空背景** | 多层滚动星星 + 渐变底图，营造沉浸感 |
-| ✈️ **玩家战机** | 自由移动、引擎尾焰动画、受击无敌闪烁 |
-| 🔫 **火力系统** | 4 个等级，弹幕形态逐级变化 — 拾取蓝色箭头升级 |
-| 👾 **3 种敌机** | 小型 / 中型 / 大型 — 大型敌机会主动射击 |
-| 👹 **BOSS 战** | 每关一个 BOSS，带血条、水平移动、扇形弹幕 |
-| 💊 **道具系统** | 回血（红心）、火力升级（蓝箭）、炸弹（黑色炸弹） |
-| 💣 **炸弹机制** | 清屏 + 对全场敌人造成伤害 |
-| 💥 **爆炸特效** | 冲击波圆环 + 内核发光 + 飞散粒子 |
-| 📊 **HUD 面板** | 分数、生命（红心）、炸弹数、关卡、最高分 |
-| 📈 **动态难度** | 敌机速度和生成频率随关卡提升 |
+| 🎮 **游戏状态** | 主菜单 → 游戏进行 → 暂停（含属性面板）→ 失败 / 通关 |
+| ✈️ **玩家系统** | WASD/方向键移动、生命值（可提升上限至 5）、受击无敌闪烁、引擎尾焰动画 |
+| 🔫 **火力系统** | 3 级火力（单发/双发/三发散射），永久伤害提升（上限 4 级） |
+| 👾 **敌机系统** | 7 种敌机：普通/快速/射击/蛇形/装甲/俯冲/横掠，每种拥有独特的移动与攻击模式 |
+| 👹 **Boss 战** | 每关一个 Boss，带独立血条，6 种弹幕招式（环形/瞄准/螺旋/花瓣/激光/召唤） |
+| 💊 **道具系统** | 4 种临时道具（火力增强/回血/护盾/炸弹）+ 2 种永久稀有道具（生命上限/攻击力提升） |
+| 💥 **视觉效果** | 爆炸粒子、受击白闪、屏幕震动、激光大招、护盾光环、视差滚动星空背景 |
+| 📊 **HUD 界面** | 分数、生命（爱心图标）、关卡、火力等级、炸弹数量、能量条（大招） |
+| 🏆 **排行榜** | 本地文件存储，记录历史前 10 名玩家成绩 |
+| 📖 **敌机图鉴** | 暂停时按 I 键打开，查看我方属性与当前关卡敌机详细数据 |
 
 ---
 
-## 🎮 操作说明
+### 操作说明
 
 | 按键 | 功能 |
 | :--- | :--- |
-| `↑` `↓` `←` `→` / `W` `A` `S` `D` | 移动战机 |
-| （自动开火） | 无需按键，持续射击 |
-| `X` | 释放炸弹（清屏） |
-| `P` | 暂停 / 继续 |
-| `空格` | 开始游戏 / 重新开始 |
-| `ESC` | 返回菜单 / 退出游戏 |
+| `W` `A` `S` `D` / `↑` `←` `↓` `→` | 移动战机（支持八方向） |
+| `空格` | 自动连射（按住即可） |
+| `X` | 释放激光大招（需能量集满） |
+| `R` | 闪避冲刺（朝当前方向快速位移 + 短暂无敌） |
+| `B` | 投放炸弹（清屏 + 对 Boss 造成伤害） |
+| `P` | 暂停 / 继续游戏 |
+| `I` | 暂停时打开/关闭属性图鉴面板 |
+| `回车` / `空格` | 开始游戏 / 结算界面返回菜单 |
+| `ESC` | 返回主菜单 / 退出游戏 |
 
 ---
 
-## 🛠️ 技术栈
+### 技术栈
 
-- **语言：** C++
+- **编程语言：** C++（C++11 及以上）
 - **图形库：** EasyX（https://easyx.cn）
-- **平台：** Windows（基于 GDI）
-- **构建工具：** Visual Studio
+- **平台：** Windows
+- **开发环境：** Visual Studio
 - **渲染方式：** 双缓冲批量绘制，60 FPS 目标
+- **音频支持：** 可选（通过 `ENABLE_SOUND` 宏控制），使用 `winmm.lib` 播放 `.wav`
 
 ---
 
-## 📥 如何下载与游玩
+### 下载与运行
 
-> **提示：** 可执行文件采用静态链接编译，无需额外依赖。下载即可运行！
+> 可执行文件采用静态链接编译，无需安装额外运行库，下载即可运行。
 
 1. 前往本仓库的 [Releases](https://github.com/DornGames/PlaneWar/releases) 页面
 2. 下载最新的 `PlaneWar.exe` 文件
-3. 双击 `.exe` 即可启动游戏
+3. 双击 `.exe` 文件即可启动游戏
 
-无需安装、无需运行库、无需额外文件 — 一个 `.exe` 就够了！
-
----
-
-## 🔧 从源码构建
-
-如果你想自行编译游戏：
-
-1. **安装 Visual Studio**（2019 或更新版本），勾选“使用 C++ 的桌面开发”工作负载
-2. **安装 EasyX**，从 https://easyx.cn 下载安装
-3. 克隆本仓库
-4. 在 Visual Studio 中打开 `.cpp` 文件
-5. 将配置切换为 **Release**，平台选择 **x64**（或 **x86**）
-6. 生成项目（`Ctrl + Shift + B`）
-7. `.exe` 将生成在 `Release` 文件夹中
-
-> **注意：** 代码中使用了 `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")` 来隐藏控制台黑框，游戏将以纯 GUI 窗口方式运行。
+无需安装、无需配置、无需额外文件 —— 一个 `.exe` 就够了！
 
 ---
 
-## 📜 基本准则
+### 从源码构建
 
-- ✅ 仅限粉丝内容 — 不得用于商业用途
-- ✅ 欢迎 Fork、学习和修改
-- ✅ 如需贡献，请保持代码整洁并添加注释
-- ❌ 禁止 NSFW 或冒犯性内容
+**前置条件：**
+- Visual Studio（2019 或更新版本），安装“使用 C++ 的桌面开发”工作负载
+- EasyX 图形库（从 https://easyx.cn 下载安装）
+
+**构建步骤：**
+1. 克隆本仓库到本地
+2. 在 Visual Studio 中打开 `.cpp` 源文件
+3. 设置字符集为 **使用多字节字符集** 或开启 `/utf-8` 编译选项
+4. 将配置切换为 **Release**，平台选择 **x64**（或 **x86**）
+5. 生成项目（`Ctrl + Shift + B`）
+6. 生成的 `.exe` 位于 `Release` 文件夹中
+
+> **注意：** 代码通过 `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")` 隐藏控制台窗口，游戏将以纯 GUI 方式运行。
 
 ---
 
-## 🏢 团队
+### 团队与版权
 
 **子团队：** DornGames  
 **版权所有 © 2023-2026 DornGames。保留所有权利。**
@@ -223,9 +194,9 @@ Dorn Games & Dorn Hub
 
 ---
 
-## ©️ 许可证
+### 许可证
 
-本项目采用 **MIT 许可证** — 一个宽松的开源协议，允许任何人自由使用、复制、修改、合并、发布、分发、再授权和销售本软件，仅需保留版权声明。
+本项目采用 **MIT 许可证** —— 一个宽松的开源协议，允许任何人自由使用、复制、修改、合并、发布、分发、再授权和销售本软件，仅需保留版权声明。
 
 **版权所有 © 2026 DornGames / Dorn Hub**
 
@@ -235,5 +206,5 @@ Dorn Games & Dorn Hub
 
 ---
 
-敬上一杯刺梨汁！
+敬上一杯刺梨汁！🍹  
 Dorn Games & Dorn Hub
