@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>飞机大战 · 课程设计演示</title>
+    
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        /* ==================== 全局重置 & 变量 ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --transition-speed: 0.4s;
+            --animation-curve: cubic-bezier(0.05, 0.7, 0.1, 1.0);
+            --primary-color: #16DA49;
+            --primary-rgb: 22, 218, 73;
+            --bg-dark: #0a0c1a;
+            --text-light: #f0f4ff;
+            --text-muted: rgba(255, 255, 255, 0.65);
+            --card-bg: rgba(255, 255, 255, 0.06);
+            --card-border: rgba(255, 255, 255, 0.10);
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            overflow: hidden;
+        }
+
+        /* ==================== 星空粒子背景 ==================== */
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ==================== 飞机轨迹绘制层 ==================== */
+        #trailCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* ==================== 幻灯片容器 ==================== */
+        .slides-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            z-index: 3;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 80px 60px 40px;
+            opacity: 0;
+            visibility: hidden;
+            will-change: transform, opacity;
+            overflow-y: auto;
+            background: transparent;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            z-index: 10;
+        }
+
+        /* ==================== 左上角 Logo ==================== */
+        .global-logo {
+            position: fixed;
+            top: 24px;
+            left: 30px;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+        .global-logo.visible {
+            opacity: 1;
+        }
+        .global-logo a {
+            pointer-events: auto;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .global-logo .logo-text {
+            display: flex;
+            align-items: center;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            line-height: 1;
+        }
+        .global-logo .logo-dorn {
+            color: var(--primary-color);
+            background: transparent;
+            padding-right: 2px;
+        }
+        .global-logo .logo-hub {
+            color: #fff;
+            background: var(--primary-color);
+            border-radius: 10px;
+            padding: 0 12px;
+            line-height: 40px;
+            margin-left: 4px;
+        }
+        .global-logo .logo-img {
+            height: 50px;
+            width: auto;
+            border-radius: 4px;
+            object-fit: contain;
+            display: block;
+            flex-shrink: 0;
+        }
+
+        /* ==================== 环节序号（左上角） ==================== */
+        .section-number {
+            position: fixed;
+            top: 80px;
+            left: 30px;
+            z-index: 100;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary-color);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.6s var(--animation-curve), transform 0.6s var(--animation-curve);
+            transform: scale(0.8);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-number.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+        }
+        .section-number .num-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border: 2px solid var(--primary-color);
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary-color);
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+        .section-number .num-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-light);
+            letter-spacing: 1px;
+        }
+
+        /* ==================== 页码指示器 ==================== */
+        .page-indicator {
+            position: fixed;
+            right: 28px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 999;
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+        .page-indicator.visible {
+            display: flex;
+        }
+        .page-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.20);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            cursor: pointer;
+            transition: all var(--transition-speed) var(--animation-curve);
+            position: relative;
+        }
+        .page-dot:hover {
+            background: rgba(255, 255, 255, 0.40);
+            transform: scale(1.2);
+        }
+        .page-dot.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 20px rgba(22, 218, 73, 0.5);
+            transform: scale(1.25);
+        }
+        .page-dot .dot-label {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(4px);
+        }
+        .page-dot:hover .dot-label {
+            opacity: 1;
+        }
+
+        /* ==================== 大标题行（含右侧飞机） ==================== */
+        .title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        .title-row .slide-title {
+            margin-bottom: 0;
+            flex: 1;
+        }
+        .title-row .plane-icon-wrap {
+            flex-shrink: 0;
+            margin-left: 20px;
+            width: clamp(64px, 8vw, 110px);
+            height: clamp(72px, 9vw, 120px);
+            position: relative;
+            transform: translateX(-750%);
+            opacity: 0;
+            transition: none;
+        }
+        .title-row .plane-icon-wrap.visible {
+            opacity: 1;
+        }
+        .title-row .plane-icon-wrap.fly-in {
+            animation: planeFlyIn 2s cubic-bezier(0.05, 0.7, 0.1, 1.0) forwards;
+        }
+        @keyframes planeFlyIn {
+            0% {
+                transform: translateX(-750%);
+                opacity: 0;
+            }
+            60% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .title-row .plane-icon-wrap canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* ==================== 幻灯片内容 ==================== */
+        .slide-inner {
+            max-width: 1100px;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .slide-title {
+            font-size: clamp(42px, 5.5vw, 72px);
+            font-weight: 800;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, #fff 30%, var(--primary-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.1;
+            opacity: 0;
+            transform: scale(3);
+            transition: opacity 0.8s var(--animation-curve), transform 0.8s var(--animation-curve);
+            transform-origin: left center;
+        }
+        .slide-title.stamped {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .slide-subtitle {
+            font-size: clamp(16px, 1.4vw, 22px);
+            color: var(--text-muted);
+            margin-bottom: 28px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            opacity: 0;
+            transition: opacity 0.6s var(--animation-curve) 0.3s;
+        }
+        .slide-subtitle.visible {
+            opacity: 1;
+        }
+
+        .points-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 18px 28px;
+            margin-top: 10px;
+        }
+        .point-item {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 20px 24px;
+            backdrop-filter: blur(4px);
+            transition: all 0.5s var(--animation-curve);
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .point-item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .point-item .icon {
+            font-size: 24px;
+            margin-right: 10px;
+            display: inline-block;
+            color: var(--primary-color);
+            width: 30px;
+            text-align: center;
+        }
+        .point-item strong {
+            color: #fff;
+            font-weight: 700;
+            font-size: 17px;
+        }
+        .point-item .desc {
+            font-size: 20px;          /* 正文调大 */
+            font-weight: 700;
+            color: #fff;
+            margin-top: 4px;
+            line-height: 1.5;
+            opacity: 0.85;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 12px;
+        }
+        .two-col .col {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 22px 26px;
+            backdrop-filter: blur(4px);
+            transition: all 0.5s var(--animation-curve);
+            opacity: 0;
+            transform: translateY(16px);
+        }
+        .two-col .col.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .two-col .col h3 {
+            color: var(--primary-color);
+            font-size: 20px;
+            margin-bottom: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .two-col .col h3 i {
+            color: var(--primary-color);
+            font-size: 22px;
+            width: 28px;
+            text-align: center;
+        }
+        .two-col .col ul {
+            list-style: none;
+            padding: 0;
+        }
+        .two-col .col ul li {
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 20px;          /* 正文调大 */
+            font-weight: 700;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            color: #fff;
+            opacity: 0.85;
+        }
+        .two-col .col ul li::before {
+            content: "▸";
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 22px;
+        }
+
+        .arch-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin: 12px 0;
+        }
+        .arch-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .arch-box {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 14px 26px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            backdrop-filter: blur(4px);
+            min-width: 100px;
+            text-align: center;
+            transition: all 0.5s var(--animation-curve);
+            opacity: 0;
+            transform: translateY(16px);
+        }
+        .arch-box.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .arch-box.highlight {
+            border-color: var(--primary-color);
+            background: rgba(22, 218, 73, 0.08);
+        }
+        .arch-box span {
+            font-weight: 400;
+            font-size: 13px;
+            opacity: 0.7;
+        }
+        .arch-box i {
+            color: var(--primary-color);
+            margin-right: 6px;
+        }
+        .arch-arrow {
+            color: var(--text-muted);
+            font-size: 24px;
+            font-weight: 300;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(22, 218, 73, 0.15);
+            color: var(--primary-color);
+            font-size: 14px;
+            font-weight: 700;
+            padding: 4px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(22, 218, 73, 0.20);
+            transition: all 0.5s var(--animation-curve);
+            opacity: 0;
+            transform: translateY(12px);
+        }
+        .badge.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .badge i {
+            margin-right: 4px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* ==================== Logo展示页 ==================== */
+        .slide-logo .big-logo-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            font-size: clamp(40px, 6vw, 70px);
+            font-weight: 700;
+            opacity: 0;
+            transform: scale(0.5) rotate(-10deg);
+            transition: none;
+        }
+        .slide-logo .big-logo-wrap .logo-dorn {
+            color: var(--primary-color);
+        }
+        .slide-logo .big-logo-wrap .logo-hub {
+            color: #fff;
+            background: var(--primary-color);
+            border-radius: 18px;
+            padding: 0 24px;
+            line-height: 1.2;
+        }
+        .slide-logo .big-logo-wrap .logo-img-big {
+            height: 120px;
+            width: auto;
+            border-radius: 8px;
+            object-fit: contain;
+            display: block;
+            flex-shrink: 0;
+            margin-left: 50px;
+        }
+        .slide-logo .big-logo-wrap.animate-in {
+            animation: logoReveal 1.6s cubic-bezier(0.05, 0.7, 0.1, 1.0) forwards;
+        }
+        @keyframes logoReveal {
+            0% {
+                opacity: 0;
+                transform: scale(0.5) rotate(-10deg) translateY(40px);
+            }
+            35% {
+                opacity: 1;
+                transform: scale(1.08) rotate(2deg) translateY(-6px);
+            }
+            65% {
+                transform: scale(0.97) rotate(-1deg) translateY(3px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg) translateY(0);
+            }
+        }
+
+        /* ==================== iframe 页 ==================== */
+        .slide-iframe {
+            padding: 0 !important;
+            overflow: hidden !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .slide-iframe .slide-inner {
+            max-width: 90%;
+            width: 90%;
+            height: 85%;
+            padding: 0;
+            margin: 0 auto;
+        }
+        .slide-iframe iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 16px;
+            background: #fff;
+            display: block;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        }
+        
+        .slide-github {
+            padding: 0 !important;
+            overflow: hidden !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .slide-github .slide-inner {
+            max-width: 90%;
+            width: 90%;
+            height: 85%;
+            padding: 0;
+            margin: 0 auto;
+        }
+        .slide-github .slide-inner img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* ==================== 谢谢页 ==================== */
+        .slide-thanks .thanks-title {
+            font-size: 80px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary-color), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.8s cubic-bezier(0.05, 0.7, 0.1, 1.0);
+        }
+        .slide-thanks .thanks-title.stamped {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .slide-thanks .thanks-sub {
+            font-size: 15px;
+            color: var(--text-muted);
+            margin-top: 20px;
+            opacity: 0;
+            transition: opacity 0.6s ease 0.4s;
+        }
+        .slide-thanks .thanks-sub.visible {
+            opacity: 1;
+        }
+        .slide-thanks .contact-item i {
+            color: var(--primary-color);
+            margin-right: 10px;
+            font-size: 28px;
+            width: 36px;
+            text-align: center;
+        }
+
+        /* ==================== 响应式 ==================== */
+        @media (max-width: 820px) {
+            .slide {
+                padding: 70px 24px 30px;
+            }
+            .two-col {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+            .global-logo {
+                top: 14px;
+                left: 16px;
+            }
+            .global-logo .logo-text {
+                font-size: 20px;
+            }
+            .global-logo .logo-hub {
+                line-height: 30px;
+                padding: 0 8px;
+            }
+            .global-logo .logo-img {
+                height: 28px;
+            }
+            .page-indicator {
+                right: 12px;
+                gap: 10px;
+            }
+            .page-dot {
+                width: 8px;
+                height: 8px;
+            }
+            .points-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+            .section-number {
+                top: 70px;
+                left: 16px;
+            }
+            .section-number .num-circle {
+                width: 24px;
+                height: 24px;
+                font-size: 12px;
+            }
+            .section-number .num-label {
+                font-size: 14px;
+            }
+            .slide-logo .big-logo-wrap {
+                font-size: clamp(30px, 5vw, 48px);
+                gap: 18px;
+            }
+            .slide-logo .big-logo-wrap .logo-hub {
+                padding: 0 16px;
+                border-radius: 14px;
+            }
+            .slide-logo .big-logo-wrap .logo-img-big {
+                height: 40px;
+            }
+            .title-row .plane-icon-wrap {
+                width: clamp(50px, 7vw, 80px);
+                height: clamp(56px, 8vw, 90px);
+                margin-left: 12px;
+            }
+            .point-item .desc {
+                font-size: 18px;
+            }
+            .two-col .col ul li {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .points-grid {
+                grid-template-columns: 1fr;
+            }
+            .slide-title {
+                font-size: 28px;
+            }
+            .two-col .col {
+                padding: 16px;
+            }
+            .slide {
+                padding: 60px 16px 20px;
+            }
+            .global-logo .logo-text {
+                font-size: 17px;
+            }
+            .global-logo .logo-hub {
+                line-height: 24px;
+                padding: 0 6px;
+                font-size: 17px;
+            }
+            .global-logo .logo-img {
+                height: 22px;
+            }
+            .section-number {
+                top: 60px;
+                left: 12px;
+            }
+            .slide-logo .big-logo-wrap {
+                font-size: clamp(22px, 4.5vw, 34px);
+                gap: 12px;
+                flex-direction: row;
+            }
+            .slide-logo .big-logo-wrap .logo-hub {
+                padding: 0 12px;
+                border-radius: 10px;
+            }
+            .slide-logo .big-logo-wrap .logo-img-big {
+                height: 30px;
+            }
+            .title-row .plane-icon-wrap {
+                width: clamp(40px, 6vw, 56px);
+                height: clamp(46px, 7vw, 64px);
+                margin-left: 8px;
+            }
+            .title-row {
+                flex-wrap: wrap;
+            }
+            .slide-thanks .thanks-title {
+                font-size: 48px;
+            }
+            .slide-thanks .contact-item i {
+                font-size: 20px;
+                width: 28px;
+            }
+            .point-item .desc {
+                font-size: 16px;
+            }
+            .two-col .col ul li {
+                font-size: 16px;
+            }
+        }
+
+        .slide::-webkit-scrollbar {
+            width: 4px;
+        }
+        .slide::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .slide::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        .slide::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.30);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 星空 -->
+    <canvas id="starfield"></canvas>
+
+    <!-- 飞机轨迹绘制层 -->
+    <canvas id="trailCanvas"></canvas>
+
+    <!-- 左上角 Logo -->
+    <div class="global-logo" id="globalLogo">
+        <a href="#">
+            <span class="logo-text">
+                <span class="logo-dorn">Dorn</span>
+                <span class="logo-hub">Hub</span>
+            </span>
+            <img src="logo.png" class="logo-img" alt="Logo" onerror="this.style.display='none'">
+        </a>
+    </div>
+
+    <!-- 环节序号 -->
+    <div class="section-number" id="sectionNumber">
+        <span class="num-circle" id="numCircle">1</span>
+        <span class="num-label" id="numLabel">选题背景</span>
+    </div>
+
+    <!-- 页码指示器 -->
+    <nav class="page-indicator" id="pageIndicator"></nav>
+
+    <!-- 幻灯片 -->
+    <div class="slides-wrapper" id="slidesWrapper">
+
+        <!-- 第0页：准备页 -->
+        <section class="slide active" data-index="0" data-label="准备" data-chapter="-1">
+            <div class="slide-inner" style="visibility:hidden;"></div>
+        </section>
+
+        <!-- 第1页：Logo展示页 -->
+        <section class="slide slide-logo" data-index="1" data-label="Logo" data-chapter="-1">
+            <div class="slide-inner text-center">
+                <div class="big-logo-wrap" id="bigLogo">
+                    <span class="logo-dorn">Dorn</span>
+                    <span class="logo-hub">Hub</span>
+                    <img src="logo.png" class="logo-img-big" alt="Logo" onerror="this.style.display='none'">
+                </div>
+            </div>
+        </section>
+
+        <!-- 第2页：封面 -->
+        <section class="slide slide-cover" data-index="2" data-label="封面" data-chapter="-1">
+            <div class="slide-inner text-center">
+                <div style="font-size:clamp(18px,2vw,28px); color:var(--primary-color); font-weight:300; letter-spacing:6px; margin-bottom:6px;">Produced by DornGames · 2026</div>
+                <div class="title-row" style="justify-content:center;">
+                    <div class="slide-title" style="font-size:clamp(48px,7vw,92px); text-align:center; flex:none;">飞机大战</div>
+                    <span class="plane-icon-wrap"><canvas class="mini-plane-canvas" data-scale="1.4"></canvas></span>
+                </div>
+                <div style="font-size:clamp(18px,2.2vw,32px); color:var(--text-muted); font-weight:300; letter-spacing:4px; margin-top:-4px;">Plane War · 基于 C++ &amp; EasyX</div>
+                <div style="margin-top:30px; display:flex; gap:20px; flex-wrap:wrap; justify-content:center; font-size:16px; font-weight:700; color:var(--text-muted);">
+                    <span><i class="fas fa-crosshairs" style="color: var(--primary-color); margin-right: 6px;"></i> 2D 纵版射击</span>
+                    <span><i class="fas fa-layer-group" style="color: var(--primary-color); margin-right: 6px;"></i> 无限关卡</span>
+                    <span><i class="fas fa-robot" style="color: var(--primary-color); margin-right: 6px;"></i> 7 种敌机</span>
+                    <span><i class="fas fa-dragon" style="color: var(--primary-color); margin-right: 6px;"></i> 3 种 Boss</span>
+                    <span><i class="fas fa-gem" style="color: var(--primary-color); margin-right: 6px;"></i> 装备系统</span>
+                </div>
+                <div style="margin-top:40px; opacity:0.4; font-size:14px; letter-spacing:2px; font-weight:300;">Copyright &copy 2021-2026 Dorn Hub | 2023-2026 DornGames, All rights Reserved.</div>
+            </div>
+        </section>
+
+        <!-- 环节1：选题背景 (data-chapter="1") -->
+        <section class="slide" data-index="3" data-label="选题背景" data-chapter="1">
+            <div class="slide-inner">
+                <div class="title-row">
+                    <div class="slide-title">选题背景</div>
+                    <span class="plane-icon-wrap"><canvas class="mini-plane-canvas" data-scale="1.4"></canvas></span>
+                </div>
+                <div class="slide-subtitle">2D 游戏开发 · 工程实践与算法应用</div>
+                <div class="points-grid">
+                    <div class="point-item"><span class="icon"><i class="fas fa-bullseye"></i></span><strong>经典实践</strong><div class="desc">纵版飞行射击游戏，检验编程语言掌握程度与工程实践能力</div></div>
+                    <div class="point-item"><span class="icon"><i class="fas fa-cogs"></i></span><strong>技术选型</strong><div class="desc">C++ + EasyX 图形库，无需复杂图形学底层知识</div></div>
+                    <div class="point-item"><span class="icon"><i class="fas fa-puzzle-piece"></i></span><strong>算法覆盖</strong><div class="desc">向量容器、碰撞检测、随机数、三角函数、状态机</div></div>
+                    <div class="point-item"><span class="icon"><i class="fas fa-box"></i></span><strong>完整项目</strong><div class="desc">单文件实现，覆盖课程设计全部基础与能力提升功能</div></div>
+                </div>
+                <div style="margin-top:24px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px; padding:14px 24px; backdrop-filter:blur(4px);">
+                    <span style="color:var(--text-muted); font-size:15px;"><i class="fas fa-quote-left"></i></span>
+                    <span style="color:#fff; font-size:20px; font-weight:700; letter-spacing:0.3px; opacity:0.9;">在 2D 像素级游戏中，每一帧的稳定与反馈，都是对代码质量最直接的考验。</span>
+                    <span style="color:var(--text-muted); font-size:15px;"><i class="fas fa-quote-right"></i></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 功能总览 (data-chapter="1") -->
+        <section class="slide" data-index="4" data-label="功能总览" data-chapter="1">
+            <div class="slide-inner">
+                <div class="title-row">
+                    <div class="slide-title">功能总览</div>
+                    <span class="plane-icon-wrap"><canvas class="mini-plane-canvas" data-scale="1.4"></canvas></span>
+                </div>
+                <div class="slide-subtitle">基础功能 + 深度养成，兼具可玩性与技术深度</div>
+                <div class="two-col">
+                    <div class="col"><h3><i class="fas fa-list-check"></i> 基础功能</h3><ul><li>图形窗口 · 60FPS 稳定循环 · 双缓冲无闪烁</li><li>WASD / 方向键移动 · 边界限制 · 空格射击</li><li>生命值系统 · 无敌闪烁 · 血量条显示</li><li>7 种敌机 · 自动生成 · 越界消失</li><li>AABB 碰撞检测 · 覆盖全部交互场景</li><li>计分 · 生命 · 关卡信息实时显示</li></ul></div>
+                    <div class="col"><h3><i class="fas fa-rocket"></i> 能力提升</h3><ul><li>道具系统 · 4 类临时 + 2 类永久增益</li><li>无限关卡 · 难度递增 · 解锁高阶敌机</li><li>3 种 Boss · 独立血条 · 6 套弹幕/种</li><li>敌机 AI · 蛇形 · 俯冲 · 横掠 · 射击</li><li>粒子特效 · 视差星空 · 屏幕震动</li><li>装备系统 · 物品栏 · 合成升级</li></ul></div>
+                </div>
+                <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap; justify-content:center;">
+                    <span class="badge"><i class="fas fa-chart-simple"></i> 60 FPS</span>
+                    <span class="badge"><i class="fas fa-plane"></i> 7 种敌机</span>
+                    <span class="badge"><i class="fas fa-gift"></i> 6 种道具</span>
+                    <span class="badge"><i class="fas fa-skull"></i> 18 种 Boss 招式</span>
+                    <span class="badge"><i class="fas fa-gem"></i> 装备合成</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 环节2：整体架构 (data-chapter="2") -->
+        <section class="slide" data-index="5" data-label="整体架构" data-chapter="2">
+            <div class="slide-inner">
+                <div class="title-row">
+                    <div class="slide-title">整体架构</div>
+                    <span class="plane-icon-wrap"><canvas class="mini-plane-canvas" data-scale="1.4"></canvas></span>
+                </div>
+                <div class="slide-subtitle">面向对象 · 模块化 · 三层设计</div>
+                <div class="arch-diagram">
+                    <div class="arch-row">
+                        <div class="arch-box highlight"><i class="fas fa-gamepad"></i> Game 类<br><span>核心控制层</span></div>
+                        <span class="arch-arrow"><i class="fas fa-arrow-right"></i></span>
+                        <div class="arch-box"><i class="fas fa-cubes"></i> 对象层<br><span>Bullet / Enemy / Boss / Item / Particle / Gear</span></div>
+                        <span class="arch-arrow"><i class="fas fa-arrow-right"></i></span>
+                        <div class="arch-box"><i class="fas fa-tools"></i> 工具层<br><span>碰撞 · 随机 · 颜色 · 数值 · 存档</span></div>
+                    </div>
+                    <div style="margin-top:12px; font-size:15px; font-weight:700; color:var(--text-muted); letter-spacing:1px;">── 输入采样 → 逻辑更新 → 画面渲染 ──</div>
+                    <div style="margin-top:14px; display:flex; gap:16px; flex-wrap:wrap; justify-content:center; font-size:14px; font-weight:700;">
+                        <span style="background:var(--card-bg); padding:4px 18px; border-radius:20px; border:1px solid var(--card-border); color:#fff;"><i class="fas fa-layer-group" style="color:var(--primary-color); margin-right:4px;"></i>双缓冲</span>
+                        <span style="background:var(--card-bg); padding:4px 18px; border-radius:20px; border:1px solid var(--card-border); color:#fff;"><i class="fas fa-gauge-high" style="color:var(--primary-color); margin-right:4px;"></i>帧率控制</span>
+                        <span style="background:var(--card-bg); padding:4px 18px; border-radius:20px; border:1px solid var(--card-border); color:#fff;"><i class="fas fa-diagram-project" style="color:var(--primary-color); margin-right:4px;"></i>状态机</span>
+                        <span style="background:var(--card-bg); padding:4px 18px; border-radius:20px; border:1px solid var(--card-border); color:#fff;"><i class="fas fa-clock" style="color:var(--primary-color); margin-right:4px;"></i>高精度计时</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 状态机与玩家系统 (data-chapter="2") -->
+        <section class="slide" data-index="6" data-label="状态机与玩家" data-chapter="3">
+            <div class="slide-inner">
+                <div class="title-row">
+                    <div class="slide-title">核心模块 ①</div>
+                    <span class="plane-icon-wrap"><canvas class="mini-plane-canvas" data-scale="1.4"></canvas></span>
+                </div>
+                <div class="slide-subtitle">状态机 · 玩家系统 · 等级经验</div>
+                <div class="two-col">
+                    <div class="col"><h3><i class="fas fa-arrows-rotate"></i> 状态机（FSM）</h3><ul><li><strong>主菜单</strong> — 标题 · 排行榜 · 开始</li><li><strong>进行中</strong> — 核心逻辑 · 输入响应</li><li><strong>暂停</strong> — 冻结逻辑 · 图鉴 · 装备栏</li><li><strong>游戏结束</strong> — 最终分数 · 录入排行</li></ul></div>
+                    <div class="col"><h3><i class="fas fa-plane"></i> 玩家系统</h3><ul><li>移动 · WASD / 方向键 · 斜向归一化</li><li>射击 · 4 种武器 · 3 级火力</li><li>生命 · 血量条系统 · 无敌闪烁</li><li>技能 · 闪避冲刺 · 激光大招（能量系统）</li><li>等级经验 · 属性成长 · 升级回血</li></ul></div>
+                </div>
+                <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap; justify-content:center; font-size:14px; font-weight:700; color:var(--text-muted);">
+                    <span><i class="fas fa-bolt" style="color: #fbbf24; margin-right:4px;"></i> 闪避冲刺 DASH</span>
+                    <span><i class="fas fa-fire" style="color: #ef4444; margin-right:4px;"></i> 激光大招 ULT</span>
+                    <span><i class="fas fa-bomb" style="color: #f59e0b; margin-right:4px;"></i> 炸弹 BOMB</span>
+                    <span><i class="fas fa-shield-halved" style="color: #3b82f6; margin-right:4px;"></i> 护盾 SHIELD</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 环节3：敌机与Boss (data-chapter="3") -->
+        <section class="slide" data-index="7" data-label="敌机与Boss" data-chapter="3">
+            <div class="slide-inner">
+                <div class="title-row">
+                    <div class="slide-title">核心模块 ②</div>
+                    <span class="plane-icon-wrap"><canvas class="mini-plane-canvas" data-scale="1.4"></canvas></span>
+                </div>
+                <div class="slide-subtitle">敌机系统 · Boss 战 · 道具系统</div>
+                <div class="two-col">
+                    <div class="col"><h3><i class="fas fa-robot"></i> 敌机系统（7 种）</h3><ul><li><strong>普通</strong> · 直线下移 · 基础</li><li><strong>快速</strong> · 高速直冲 · 反应考验</li><li><strong>蛇形</strong> · 正弦摆动 · 第 2 关</li><li><strong>射击</strong> · 下移 + 开火 · 第 3 关</li><li><strong>装甲</strong> · 厚甲慢速 · 第 2 关</li><li><strong>俯冲</strong> · 锁定俯冲 · 第 3 关</li><li><strong>横掠</strong> · 横向扫射 · 第 3 关</li></ul></div>
+                    <div class="col"><h3><i class="fas fa-crown"></i> Boss &amp; 道具</h3><ul><li><strong>3 种 Boss</strong> · 独立血条 · 6 招/种</li><li style="padding-left:16px; font-size:14px; opacity:0.8;">无畏舰 · 蜂巢母舰 · 机械巨蛇</li><li><strong>道具</strong> · 4 临时 + 2 永久</li><li style="padding-left:16px; font-size:14px; opacity:0.8;">火力 · 生命 · 护盾 · 炸弹 · 生命上限 · 攻击力</li><li><strong>装备系统</strong> · 3 部位 · 合成升级</li></ul></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 装备与养成系统 (data-chapter="3") -->
+        <section class="slide" data-index="8" data-label="装备与养成" data-chapter="3">
+            <div class="slide-inner">
+                <div class="title-row">
+                    <div class="slide-title">装备与养成</div>
+                    <span class="plane-icon-wrap"><canvas class="mini-plane-canvas" data-scale="1.4"></canvas></span>
+                </div>
+                <div class="slide-subtitle">武器 · 护甲 · 引擎 · 合成升级</div>
+                <div class="two-col">
+                    <div class="col"><h3><i class="fas fa-sword"></i> 武器系统</h3><ul><li><strong>速射炮</strong> — 直线速射，泛用平衡</li><li><strong>散射炮</strong> — 锥形扇面，近距离清场</li><li><strong>穿透光束</strong> — 贯穿敌人，射速偏慢</li><li><strong>追踪导弹</strong> — 自动追踪，单发高伤</li><li>每个武器 3 级火力强化</li></ul></div>
+                    <div class="col"><h3><i class="fas fa-gem"></i> 装备系统</h3><ul><li><strong>护甲</strong> — 提升防御与血量上限</li><li><strong>引擎</strong> — 提升速度与射速</li><li><strong>4 种稀有度</strong> — 普通 · 精良 · 稀有 · 史诗</li><li><strong>合成规则</strong> — 两件同级同类 → 高一级</li><li><strong>物品栏</strong> — 管理装备 · 实时切换</li></ul></div>
+                </div>
+                <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap; justify-content:center;">
+                    <span class="badge"><i class="fas fa-star"></i> 4 种稀有度</span>
+                    <span class="badge"><i class="fas fa-arrow-up"></i> 最高 LV.5</span>
+                    <span class="badge"><i class="fas fa-cubes"></i> 3 个部位</span>
+                    <span class="badge"><i class="fas fa-gem"></i> 合成升级</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 关键技术 (data-chapter="4") -->
+        <section class="slide" data-index="9" data-label="关键技术" data-chapter="4">
+            <div class="slide-inner">
+                <div class="title-row">
+                    <div class="slide-title">关键技术</div>
+                    <span class="plane-icon-wrap"><canvas class="mini-plane-canvas" data-scale="1.4"></canvas></span>
+                </div>
+                <div class="slide-subtitle">碰撞 · 帧率 · 渲染 · 粒子 · 存档 · 装备系统</div>
+                <div class="points-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+                    <div class="point-item"><span class="icon"><i class="fas fa-ruler-combined"></i></span><strong>AABB 碰撞</strong><div class="desc">轴对齐矩形包围盒，覆盖 6 类碰撞场景</div></div>
+                    <div class="point-item"><span class="icon"><i class="fas fa-stopwatch"></i></span><strong>帧率控制</strong><div class="desc">高精度计时器 + 动态 Sleep，误差 &lt; 1ms</div></div>
+                    <div class="point-item"><span class="icon"><i class="fas fa-image"></i></span><strong>双缓冲渲染</strong><div class="desc">BeginBatchDraw / FlushBatchDraw，彻底消除闪烁</div></div>
+                    <div class="point-item"><span class="icon"><i class="fas fa-star"></i></span><strong>粒子系统</strong><div class="desc">5 种粒子 · 爆炸 · 受击 · 技能特效</div></div>
+                    <div class="point-item"><span class="icon"><i class="fas fa-trophy"></i></span><strong>排行榜</strong><div class="desc">本地文件持久化，前 10 名记录</div></div>
+                    <div class="point-item"><span class="icon"><i class="fas fa-gem"></i></span><strong>装备合成</strong><div class="desc">同类同级合成升级 · 物品栏管理</div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 环节4：问题与总结 (data-chapter="5") -->
+        <section class="slide" data-index="10" data-label="问题与总结" data-chapter="5">
+            <div class="slide-inner">
+                <div class="title-row">
+                    <div class="slide-title">问题与总结</div>
+                    <span class="plane-icon-wrap"><canvas class="mini-plane-canvas" data-scale="1.4"></canvas></span>
+                </div>
+                <div class="slide-subtitle">典型问题 · 解决方案 · 项目收获</div>
+                <div class="two-col">
+                    <div class="col"><h3><i class="fas fa-wrench"></i> 典型问题</h3><ul><li><strong>画面闪烁</strong> · 双缓冲绘制</li><li><strong>帧率不稳</strong> · 高精度计时 + 动态补帧</li><li><strong>斜向过快</strong> · 输入向量归一化</li><li><strong>手感不佳</strong> · 碰撞盒缩放优化</li><li><strong>代码冗余</strong> · 统一结构体 + 枚举</li><li><strong>反馈感弱</strong> · 粒子 + 震动 + 白闪</li></ul></div>
+                    <div class="col"><h3><i class="fas fa-graduation-cap"></i> 项目收获</h3><ul><li>深入理解 C++ 面向对象与模块化设计</li><li>掌握游戏循环、帧率控制与双缓冲技术</li><li>实践状态机、碰撞检测、粒子系统等算法</li><li>积累完整项目开发与调试经验</li><li>团队协作与代码组织能力提升</li></ul></div>
+                </div>
+                <div style="margin-top:18px; text-align:center; font-size:20px; font-weight:700; color:var(--text-muted);">从 0 到 1，构建可运行的 2D 射击游戏 · 6000+ 行 C++ 代码</div>
+            </div>
+        </section>
+
+        <!-- GitHub 页面 - 仅图片 -->
+        <section class="slide slide-github" data-index="11" data-label="GitHub" data-chapter="5">
+            <div class="slide-inner" style="display:flex; align-items:center; justify-content:center; padding:20px;">
+                <div style="width:100%; height:100%; max-height:100%; border-radius:16px; overflow:hidden; 
+                            box-shadow: 0 8px 32px rgba(0,0,0,0.4); background: #0d1117;">
+                    <img 
+                        src="github.png" 
+                        alt="GitHub 项目截图" 
+                        style="width:100%; height:100%; object-fit:contain; display:block;"
+                        onerror="this.parentElement.innerHTML='<div style=\'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.6);gap:16px;padding:40px;\'><i class=\'fas fa-github\' style=\'font-size:64px;color:#fff;\'></i><h2 style=\'color:#fff;\'>GitHub 项目</h2><p style=\'text-align:center;max-width:400px;\'>请将 github.png 图片放在同目录下</p><a href=\'https://github.com/DornGames/PlaneWar\' target=\'_blank\' style=\'color:#16DA49;text-decoration:underline;\'>访问 GitHub →</a></div>'"
+                    />
+                </div>
+            </div>
+        </section>
+
+        <!-- 第12页：谢谢 -->
+        <section class="slide slide-thanks" data-index="12" data-label="谢谢" data-chapter="-1">
+            <div class="slide-inner text-center">
+                <div class="thanks-title" id="thanksTitle">谢谢！</div>
+                <div class="thanks-sub" id="thanksSub">Copyright &copy 2021-2026 Dorn Hub | 2023-2026 DornGames, All rights Reserved.</div>
+                <div style="margin-top:40px; display:flex; gap:30px; flex-wrap:wrap; justify-content:center; font-size:20px; color:var(--text-muted);">
+                    <span class="contact-item"><i class="fas fa-envelope"></i> contact@dornhub.eu.org</span>
+                    <span class="contact-item"><i class="fab fa-github"></i> https://github.com/DornGames</span>
+                    <span class="contact-item"><i class="fas fa-globe"></i> https://dornhub.eu.org</span>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ============================================================
+            //  1. 星空粒子
+            // ============================================================
+            const starCanvas = document.getElementById('starfield');
+            const sctx = starCanvas.getContext('2d');
+            let W, H;
+            const stars = [];
+
+            function resizeStarCanvas() {
+                W = starCanvas.width = window.innerWidth;
+                H = starCanvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resizeStarCanvas);
+            resizeStarCanvas();
+
+            for (let i = 0; i < 200; i++) {
+                stars.push({
+                    x: Math.random() * W,
+                    y: Math.random() * H,
+                    speed: 0.1 + Math.random() * 0.5,
+                    size: 0.5 + Math.random() * 1.8,
+                    bright: 120 + Math.random() * 135
+                });
+            }
+
+            function drawStars() {
+                sctx.clearRect(0, 0, W, H);
+                for (const s of stars) {
+                    s.y += s.speed;
+                    if (s.y > H + 10) { s.y = -10;
+                        s.x = Math.random() * W; }
+                    const a = 0.3 + (s.bright / 255) * 0.7;
+                    sctx.beginPath();
+                    sctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                    sctx.fillStyle = `rgba(255,255,255,${a})`;
+                    sctx.fill();
+                    if (s.bright > 210) {
+                        sctx.shadowColor = 'rgba(255,255,255,0.06)';
+                        sctx.shadowBlur = 6;
+                        sctx.beginPath();
+                        sctx.arc(s.x, s.y, s.size * 2.2, 0, Math.PI * 2);
+                        sctx.fillStyle = `rgba(255,255,255,0.03)`;
+                        sctx.fill();
+                        sctx.shadowBlur = 0;
+                    }
+                }
+                requestAnimationFrame(drawStars);
+            }
+            drawStars();
+
+            // ============================================================
+            //  2. 飞机绘制函数（机头朝右）- 带火焰动画参数
+            // ============================================================
+            const PLANE_CONFIG = {
+                color: '#5AD8FF',
+                glowColor: 'rgba(90,216,255,0.12)',
+                alpha: 0.85
+            };
+
+            // 火焰动画状态
+            let flamePhase = 0;
+
+            function drawPlayerPlane(ctx, cx, cy, scale, color, glowColor, alpha, flameOffset, drawFlame = true) {
+                const s = scale || 1.0;
+                const w = 44 * s,
+                    h = 50 * s;
+                const c = color || PLANE_CONFIG.color;
+                const g = glowColor || PLANE_CONFIG.glowColor;
+                const a = alpha !== undefined ? alpha : PLANE_CONFIG.alpha;
+                const flameExtra = flameOffset !== undefined ? flameOffset : (Math.random() * 10);
+
+                ctx.save();
+                ctx.globalAlpha = a;
+                ctx.translate(cx, cy);
+
+                ctx.rotate(Math.PI / 2);
+
+                ctx.beginPath();
+                ctx.moveTo(0, -h / 2);
+                ctx.lineTo(w * 0.18, -h * 0.10);
+                ctx.lineTo(w / 2, h * 0.25);
+                ctx.lineTo(w * 0.18, h * 0.15);
+                ctx.lineTo(w * 0.28, h / 2);
+                ctx.lineTo(-w * 0.28, h / 2);
+                ctx.lineTo(-w * 0.18, h * 0.15);
+                ctx.lineTo(-w / 2, h * 0.25);
+                ctx.lineTo(-w * 0.18, -h * 0.10);
+                ctx.closePath();
+                ctx.fillStyle = c;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(255,255,255,0)`;
+                ctx.lineWidth = 1.5 * s;
+                ctx.stroke();
+
+                ctx.fillStyle = '#2896C9';
+                ctx.fillRect(-4 * s, -h / 2 + 6 * s, 8 * s, h - 10 * s);
+
+                ctx.beginPath();
+                ctx.arc(0, -6 * s, 5 * s, 0, Math.PI * 2);
+                ctx.fillStyle = '#E6FAFF';
+                ctx.fill();
+
+                if (drawFlame) {
+                    const glowSize = (8 + flameExtra * 0.3) * s;
+                    const grad = ctx.createRadialGradient(0, h / 2 - 2 * s, 2 * s, 0, h / 2 - 2 * s, glowSize);
+                    grad.addColorStop(0, 'rgba(255, 200, 50, 0.3)');
+                    grad.addColorStop(1, 'rgba(255, 100, 0, 0)');
+                    ctx.beginPath();
+                    ctx.arc(0, h / 2 - 2 * s, glowSize, 0, Math.PI * 2);
+                    ctx.fillStyle = grad;
+                    ctx.fill();
+
+                    const flame = (6 + flameExtra) * s;
+                    ctx.beginPath();
+                    ctx.moveTo(-6 * s, h / 2 - 4 * s);
+                    ctx.quadraticCurveTo(-4 * s, h / 2 - 4 * s + flame * 0.6, 0, h / 2 - 4 * s + flame);
+                    ctx.quadraticCurveTo(4 * s, h / 2 - 4 * s + flame * 0.6, 6 * s, h / 2 - 4 * s);
+                    ctx.closePath();
+                    const flameGrad = ctx.createLinearGradient(0, h / 2 - 4 * s, 0, h / 2 - 4 * s + flame);
+                    flameGrad.addColorStop(0, '#FFD700');
+                    flameGrad.addColorStop(0.3, '#FFA03C');
+                    flameGrad.addColorStop(0.7, '#FF6B00');
+                    flameGrad.addColorStop(1, 'rgba(255, 50, 0, 0.2)');
+                    ctx.fillStyle = flameGrad;
+                    ctx.fill();
+
+                    const innerFlame = (3 + flameExtra * 0.4) * s;
+                    ctx.beginPath();
+                    ctx.moveTo(-3 * s, h / 2 - 3 * s);
+                    ctx.quadraticCurveTo(-2 * s, h / 2 - 3 * s + innerFlame * 0.5, 0, h / 2 - 3 * s + innerFlame);
+                    ctx.quadraticCurveTo(2 * s, h / 2 - 3 * s + innerFlame * 0.5, 3 * s, h / 2 - 3 * s);
+                    ctx.closePath();
+                    ctx.fillStyle = 'rgba(255, 255, 200, 0.8)';
+                    ctx.fill();
+                }
+
+                ctx.fillStyle = `rgba(255,255,255,${0.12 * a})`;
+                ctx.fillRect(-2 * s, -h / 2 + 12 * s, 4 * s, h * 0.3);
+
+                ctx.restore();
+            }
+
+            // ============================================================
+            //  3. 标题右侧飞机 - 带持续火焰动画 + 飞入动画
+            // ============================================================
+            function drawMiniPlane(canvas, scale) {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                const size = Math.min(rect.width || 80, rect.height || 90);
+                const dpr = window.devicePixelRatio || 1;
+                const w = size * dpr;
+                const h = size * dpr;
+                canvas.width = w;
+                canvas.height = h;
+                canvas.style.width = size + 'px';
+                canvas.style.height = size + 'px';
+                const ctx = canvas.getContext('2d');
+                const s = (size / 60) * (scale || 1.4);
+                
+                canvas.dataset.scale = scale || 1.4;
+                
+                drawPlayerPlane(ctx, w / 2, h / 2, s, undefined, undefined, undefined, 0, false);
+            }
+
+            function animateFlames() {
+                flamePhase += 0.12;
+                document.querySelectorAll('.mini-plane-canvas').forEach((canvas, index) => {
+                    const ctx = canvas.getContext('2d');
+                    const w = canvas.width;
+                    const h = canvas.height;
+                    const scale = parseFloat(canvas.dataset.scale) || 1.4;
+                    const size = Math.min(canvas.parentElement?.getBoundingClientRect().width || 80, 
+                                          canvas.parentElement?.getBoundingClientRect().height || 90);
+                    const s = (size / 60) * scale;
+                    const phase = parseFloat(canvas.dataset.phase) || (index * 1.2);
+                    const flameOffset = 6 + 5 * Math.sin(flamePhase + phase);
+                    drawPlayerPlane(ctx, w / 2, h / 2, s, undefined, undefined, undefined, flameOffset);
+                });
+                requestAnimationFrame(animateFlames);
+            }
+
+            function initMiniPlanes() {
+                document.querySelectorAll('.mini-plane-canvas').forEach((canvas, index) => {
+                    const scale = parseFloat(canvas.dataset.scale) || 1.4;
+                    canvas.dataset.phase = index * 1.2;
+                    drawMiniPlane(canvas, scale);
+                    
+                    const wrap = canvas.parentElement;
+                    if (wrap) {
+                        wrap.classList.remove('fly-in', 'visible');
+                        wrap.style.transform = 'translateX(-150%)';
+                        wrap.style.opacity = '0';
+                    }
+                });
+            }
+
+            // 触发展开页面的飞机飞入动画
+            function triggerPlaneFlyIn(slide) {
+                const wrap = slide.querySelector('.title-row .plane-icon-wrap');
+                if (!wrap) return;
+                wrap.classList.remove('fly-in');
+                void wrap.offsetWidth;
+                wrap.style.transform = 'translateX(-150%)';
+                wrap.style.opacity = '0';
+                void wrap.offsetWidth;
+                wrap.classList.add('fly-in');
+                wrap.style.transform = '';
+                wrap.style.opacity = '';
+            }
+
+            // 重置飞机位置
+            function resetPlanePosition(slide) {
+                const wrap = slide.querySelector('.title-row .plane-icon-wrap');
+                if (!wrap) return;
+                wrap.classList.remove('fly-in', 'visible');
+                wrap.style.transform = 'translateX(-150%)';
+                wrap.style.opacity = '0';
+            }
+
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(initMiniPlanes, 200);
+            });
+
+            setTimeout(animateFlames, 100);
+
+            // ============================================================
+            //  4. 轨迹绘制
+            // ============================================================
+            const trailCanvas = document.getElementById('trailCanvas');
+            const tctx = trailCanvas.getContext('2d');
+            let tw, th;
+
+            function resizeTrailCanvas() {
+                tw = trailCanvas.width = window.innerWidth;
+                th = trailCanvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resizeTrailCanvas);
+            resizeTrailCanvas();
+
+            let trailPoints = [];
+
+            function drawSolidCircle(chapterIdx, progress) {
+                const cx = tw / 2,
+                    cy = th / 2 - 20;
+                const radius = Math.min(tw, th) * 0.28;
+                const totalPoints = 160;
+                const count = Math.floor(progress * totalPoints);
+
+                tctx.clearRect(0, 0, tw, th);
+                trailPoints = [];
+
+                for (let i = 0; i < count; i++) {
+                    const t = (i / totalPoints) * Math.PI * 2;
+                    const x = cx + radius * Math.cos(t);
+                    const y = cy + radius * Math.sin(t);
+                    trailPoints.push({ x, y });
+                }
+
+                if (trailPoints.length > 1) {
+                    tctx.save();
+                    tctx.beginPath();
+                    tctx.moveTo(trailPoints[0].x, trailPoints[0].y);
+                    for (let i = 1; i < trailPoints.length; i++) {
+                        tctx.lineTo(trailPoints[i].x, trailPoints[i].y);
+                    }
+                    tctx.strokeStyle = 'rgba(255,255,255,0.95)';
+                    tctx.lineWidth = 7;
+                    tctx.shadowColor = 'rgba(255,255,255,0.2)';
+                    tctx.shadowBlur = 18;
+                    tctx.lineCap = 'round';
+                    tctx.lineJoin = 'round';
+                    tctx.stroke();
+                    tctx.shadowBlur = 0;
+                    tctx.restore();
+                }
+
+                if (count > 0) {
+                    const last = trailPoints[trailPoints.length - 1];
+                    const idx = trailPoints.length - 1;
+                    const prevIdx = Math.max(0, idx - 1);
+                    const dx = trailPoints[idx].x - trailPoints[prevIdx].x;
+                    const dy = trailPoints[idx].y - trailPoints[prevIdx].y;
+                    const angle = Math.atan2(dy, dx);
+
+                    tctx.save();
+                    tctx.translate(last.x, last.y);
+                    tctx.rotate(angle);
+                    const flameOff = 6 + 5 * Math.sin(flamePhase + 3.7);
+                    drawPlayerPlane(tctx, 0, 0, 1.6, undefined, undefined, undefined, flameOff);
+                    tctx.restore();
+                }
+
+                if (progress > 0.3) {
+                    const np = Math.min((progress - 0.3) / 0.7, 1);
+                    const ease = 1 - Math.pow(1 - np, 3);
+                    const fontSize = 200 + 100 * (1 - ease);
+                    tctx.save();
+                    tctx.textAlign = 'center';
+                    tctx.textBaseline = 'middle';
+                    tctx.shadowColor = `rgba(255,255,255,${ease * 0.3})`;
+                    tctx.shadowBlur = 50;
+                    tctx.font = `900 ${fontSize}px 'Segoe UI', 'PingFang SC', sans-serif`;
+                    const grad = tctx.createRadialGradient(cx - 40, cy - 40, 10, cx, cy, fontSize * 0.9);
+                    grad.addColorStop(0, `rgba(255,255,255,${ease})`);
+                    grad.addColorStop(0.5, `rgba(200,255,200,${ease * 0.95})`);
+                    grad.addColorStop(1, `rgba(22,218,73,${ease * 0.9})`);
+                    tctx.fillStyle = grad;
+                    tctx.fillText(String(chapterIdx), cx, cy);
+                    tctx.shadowBlur = 0;
+                    tctx.strokeStyle = `rgba(255,255,255,${ease * 0.1})`;
+                    tctx.lineWidth = 3;
+                    tctx.strokeText(String(chapterIdx), cx, cy);
+                    tctx.restore();
+                }
+            }
+
+            function animateCircleTrail(chapterIdx, callback) {
+                const duration = 1500;
+                const startTime = performance.now();
+
+                function step(time) {
+                    const elapsed = time - startTime;
+                    const p = Math.min(elapsed / duration, 1);
+                    const eased = 1 - Math.pow(1 - p, 3);
+                    drawSolidCircle(chapterIdx, eased);
+
+                    if (p < 1) {
+                        requestAnimationFrame(step);
+                    } else {
+                        drawSolidCircle(chapterIdx, 1);
+                        setTimeout(() => {
+                            clearTrail();
+                            if (callback) callback();
+                        }, 350);
+                    }
+                }
+                requestAnimationFrame(step);
+            }
+
+            function clearTrail() {
+                tctx.clearRect(0, 0, tw, th);
+                trailPoints = [];
+            }
+
+            // ============================================================
+            //  5. UI控制
+            // ============================================================
+            const sectionNumberEl = document.getElementById('sectionNumber');
+            const numCircle = document.getElementById('numCircle');
+            const numLabel = document.getElementById('numLabel');
+            const chapterLabels = {
+                1: '选题背景',
+                2: '整体架构',
+                3: '核心模块',
+                4: '关键技术',
+                5: '问题与总结'
+            };
+
+            function showSectionNumber(chapterIdx) {
+                numCircle.textContent = chapterIdx;
+                numLabel.textContent = chapterLabels[chapterIdx] || `第${chapterIdx}章`;
+                sectionNumberEl.classList.add('visible');
+            }
+
+            function hideSectionNumber() {
+                sectionNumberEl.classList.remove('visible');
+            }
+
+            function triggerStampTitle(slide) {
+                const title = slide.querySelector('.slide-title');
+                const subtitle = slide.querySelector('.slide-subtitle');
+
+                triggerPlaneFlyIn(slide);
+
+                if (title) {
+                    title.style.transition = 'none';
+                    title.style.opacity = '0';
+                    title.style.transform = 'scale(3)';
+                    void title.offsetWidth;
+                    title.style.transition =
+                        'opacity 0.8s cubic-bezier(0.05, 0.7, 0.1, 1.0), transform 0.8s cubic-bezier(0.05, 0.7, 0.1, 1.0)';
+                    title.style.opacity = '1';
+                    title.style.transform = 'scale(1)';
+                    title.classList.add('stamped');
+                }
+
+                if (subtitle) {
+                    setTimeout(() => {
+                        subtitle.style.transition = 'opacity 0.6s cubic-bezier(0.05, 0.7, 0.1, 1.0)';
+                        subtitle.style.opacity = '1';
+                        subtitle.classList.add('visible');
+                    }, 300);
+                }
+
+                setTimeout(() => {
+                    const items = slide.querySelectorAll('.point-item, .two-col .col, .arch-box, .badge');
+                    items.forEach((el, i) => {
+                        el.style.transition = 'none';
+                        el.style.opacity = '0';
+                        el.style.transform = 'translateY(16px)';
+                        el.classList.remove('visible');
+                        void el.offsetWidth;
+                        const delay = 0.06 * (i + 1);
+                        el.style.transition =
+                            `all 0.5s cubic-bezier(0.05, 0.7, 0.1, 1.0) ${delay}s`;
+                        requestAnimationFrame(() => {
+                            el.style.opacity = '1';
+                            el.style.transform = 'translateY(0)';
+                            el.classList.add('visible');
+                        });
+                    });
+                }, 600);
+            }
+
+            function triggerThanksAnimation(slide) {
+                const title = slide.querySelector('.thanks-title');
+                const sub = slide.querySelector('.thanks-sub');
+                if (title) {
+                    title.style.transition = 'none';
+                    title.style.opacity = '0';
+                    title.style.transform = 'scale(0.5)';
+                    title.classList.remove('stamped');
+                    void title.offsetWidth;
+                    title.style.transition =
+                        'all 0.8s cubic-bezier(0.05, 0.7, 0.1, 1.0)';
+                    title.style.opacity = '1';
+                    title.style.transform = 'scale(1)';
+                    title.classList.add('stamped');
+                }
+                if (sub) {
+                    setTimeout(() => {
+                        sub.style.transition = 'opacity 0.6s ease 0.4s';
+                        sub.style.opacity = '1';
+                        sub.classList.add('visible');
+                    }, 300);
+                }
+            }
+
+            function resetSlideContent(slide) {
+                const title = slide.querySelector('.slide-title');
+                const subtitle = slide.querySelector('.slide-subtitle');
+                if (title) {
+                    title.style.transition = 'none';
+                    title.style.opacity = '0';
+                    title.style.transform = 'scale(3)';
+                    title.classList.remove('stamped');
+                }
+                if (subtitle) {
+                    subtitle.style.transition = 'none';
+                    subtitle.style.opacity = '0';
+                    subtitle.classList.remove('visible');
+                }
+                const thanksTitle = slide.querySelector('.thanks-title');
+                const thanksSub = slide.querySelector('.thanks-sub');
+                if (thanksTitle) {
+                    thanksTitle.style.transition = 'none';
+                    thanksTitle.style.opacity = '0';
+                    thanksTitle.style.transform = 'scale(0.5)';
+                    thanksTitle.classList.remove('stamped');
+                }
+                if (thanksSub) {
+                    thanksSub.style.transition = 'none';
+                    thanksSub.style.opacity = '0';
+                    thanksSub.classList.remove('visible');
+                }
+                const items = slide.querySelectorAll('.point-item, .two-col .col, .arch-box, .badge');
+                items.forEach(el => {
+                    el.style.transition = 'none';
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(16px)';
+                    el.classList.remove('visible');
+                });
+                resetPlanePosition(slide);
+                void slide.offsetWidth;
+            }
+
+            // ============================================================
+            //  6. 幻灯片切换
+            // ============================================================
+            const slides = document.querySelectorAll('.slide');
+            const total = slides.length;
+            let current = 0;
+            let isTransitioning = false;
+            let lastChapter = -1;
+
+            function getChapter(index) {
+                return parseInt(slides[index].dataset.chapter) || -1;
+            }
+
+            const indicator = document.getElementById('pageIndicator');
+            const names = ['准备', 'Logo', '封面', '选题背景', '功能总览', '整体架构', '状态机与玩家', '敌机与Boss', '装备与养成', '关键技术', '问题与总结',
+                'GitHub', '谢谢'
+            ];
+            for (let i = 0; i < total; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'page-dot' + (i === 0 ? ' active' : '');
+                dot.dataset.index = i;
+                const label = document.createElement('span');
+                label.className = 'dot-label';
+                label.textContent = names[i] || `第${i+1}页`;
+                dot.appendChild(label);
+                dot.addEventListener('click', () => goTo(i));
+                indicator.appendChild(dot);
+            }
+            const dots = indicator.querySelectorAll('.page-dot');
+
+            function updateDots() {
+                dots.forEach((d, i) => d.classList.toggle('active', i === current));
+            }
+
+            const globalLogo = document.getElementById('globalLogo');
+
+            function goTo(index) {
+                if (isTransitioning) return;
+                if (index === current) return;
+                if (index < 0 || index >= total) return;
+            
+                const from = current;
+                const to = index;
+                const fromChapter = getChapter(from);
+                const toChapter = getChapter(to);
+            
+                const isEffectiveChapterChange = (toChapter >= 1 && fromChapter !== toChapter);
+            
+                isTransitioning = true;
+            
+                const outSlide = slides[from];
+                outSlide.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                outSlide.style.opacity = '0';
+                outSlide.style.transform = 'scale(0.96)';
+                outSlide.style.visibility = 'hidden';
+                outSlide.classList.remove('active');
+            
+                const inSlide = slides[to];
+                inSlide.style.transition = 'none';
+                inSlide.style.opacity = '0';
+                inSlide.style.visibility = 'visible';
+                inSlide.style.transform = 'scale(0.98)';
+                inSlide.classList.add('active');
+            
+                resetSlideContent(inSlide);
+            
+                if (to === 0) {
+                    globalLogo.classList.remove('visible');
+                    indicator.classList.remove('visible');
+                    hideSectionNumber();
+                    inSlide.style.transition = 'opacity 0.5s ease';
+                    inSlide.style.opacity = '1';
+                    inSlide.style.transform = 'scale(1)';
+                    current = to;
+                    updateDots();
+                    isTransitioning = false;
+                    return;
+                }
+            
+                if (to === 1) {
+                    globalLogo.classList.remove('visible');
+                    indicator.classList.remove('visible');
+                    hideSectionNumber();
+                    inSlide.style.transition = 'opacity 0.3s ease';
+                    inSlide.style.opacity = '1';
+                    inSlide.style.transform = 'scale(1)';
+                    const logo = inSlide.querySelector('.big-logo-wrap');
+                    if (logo) {
+                        logo.classList.remove('animate-in');
+                        void logo.offsetWidth;
+                        logo.classList.add('animate-in');
+                    }
+                    current = to;
+                    updateDots();
+                    
+                    setTimeout(() => {
+                        if (current === 1 && !isTransitioning) {
+                            goTo(2);
+                        }
+                    }, 1000);
+                    
+                    setTimeout(() => { isTransitioning = false; }, 500);
+                    return;
+                }
+            
+                if (to === 2) {
+                    globalLogo.classList.add('visible');
+                    indicator.classList.add('visible');
+                    hideSectionNumber();
+                    inSlide.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    inSlide.style.opacity = '1';
+                    inSlide.style.transform = 'scale(1)';
+                    setTimeout(() => {
+                        triggerStampTitle(inSlide);
+                    }, 100);
+                    current = to;
+                    updateDots();
+                    setTimeout(() => { isTransitioning = false; }, 1000);
+                    return;
+                }
+            
+                if (to === 11) {
+                    globalLogo.classList.remove('visible');
+                    indicator.classList.remove('visible');
+                    hideSectionNumber();
+                    inSlide.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    inSlide.style.opacity = '1';
+                    inSlide.style.transform = 'scale(1)';
+                    current = to;
+                    updateDots();
+                    setTimeout(() => {
+                        isTransitioning = false;
+                    }, 600);
+                    return;
+                }
+            
+                if (to === 12) {
+                    globalLogo.classList.remove('visible');
+                    indicator.classList.remove('visible');
+                    hideSectionNumber();
+                    inSlide.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    inSlide.style.opacity = '1';
+                    inSlide.style.transform = 'scale(1)';
+                    setTimeout(() => {
+                        triggerThanksAnimation(inSlide);
+                    }, 200);
+                    current = to;
+                    updateDots();
+                    setTimeout(() => { isTransitioning = false; }, 1200);
+                    return;
+                }
+            
+                globalLogo.classList.add('visible');
+                indicator.classList.add('visible');
+            
+                if (isEffectiveChapterChange) {
+                    clearTrail();
+                    hideSectionNumber();
+            
+                    animateCircleTrail(toChapter, () => {
+                        inSlide.style.transition = 'opacity 0.4s ease';
+                        inSlide.style.opacity = '1';
+                        inSlide.style.transform = 'scale(1)';
+            
+                        showSectionNumber(toChapter);
+                        triggerStampTitle(inSlide);
+            
+                        current = to;
+                        lastChapter = toChapter;
+                        updateDots();
+                        isTransitioning = false;
+                    });
+                } else {
+                    if (toChapter >= 1) showSectionNumber(toChapter);
+            
+                    inSlide.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                    inSlide.style.opacity = '1';
+                    inSlide.style.transform = 'scale(1)';
+            
+                    triggerStampTitle(inSlide);
+            
+                    current = to;
+                    updateDots();
+                    setTimeout(() => { isTransitioning = false; }, 1000);
+                }
+            }
+
+            // ---- 滚轮/键盘 ----
+            let wheelTimeout = false;
+
+            function handleWheel(e) {
+                if (isTransitioning) return;
+                const delta = e.deltaY;
+                if (Math.abs(delta) < 30) return;
+                if (delta > 0 && current < total - 1) goTo(current + 1);
+                else if (delta < 0 && current > 0) goTo(current - 1);
+            }
+
+            function handleKey(e) {
+                if (isTransitioning) return;
+                if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); if (current < total - 1) goTo(
+                        current + 1); } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); if (
+                        current > 0) goTo(current - 1); }
+            }
+
+            document.addEventListener('wheel', (e) => {
+                if (wheelTimeout) return;
+                wheelTimeout = true;
+                handleWheel(e);
+                setTimeout(() => { wheelTimeout = false; }, 500);
+            }, { passive: true });
+
+            document.addEventListener('keydown', handleKey);
+
+            let touchStartY = 0;
+            document.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
+            document.addEventListener('touchend', (e) => {
+                if (isTransitioning) return;
+                const diff = touchStartY - e.changedTouches[0].clientY;
+                if (Math.abs(diff) > 50) {
+                    if (diff > 0 && current < total - 1) goTo(current + 1);
+                    else if (diff < 0 && current > 0) goTo(current - 1);
+                }
+            }, { passive: true });
+
+            // ============================================================
+            //  7. 初始化
+            // ============================================================
+            slides.forEach((s, i) => {
+                if (i === 0) {
+                    s.style.opacity = '1';
+                    s.style.visibility = 'visible';
+                    s.style.transform = 'scale(1)';
+                    s.classList.add('active');
+                } else {
+                    s.style.opacity = '0';
+                    s.style.visibility = 'hidden';
+                    s.style.transform = 'scale(0.96)';
+                    s.classList.remove('active');
+                }
+            });
+
+            globalLogo.classList.remove('visible');
+            indicator.classList.remove('visible');
+            hideSectionNumber();
+
+            setTimeout(initMiniPlanes, 100);
+
+            updateDots();
+            window.goToSlide = goTo;
+
+            console.log('✈️ 飞机大战演示');
+            console.log('🔥 飞机尾部火焰持续跳动动画已启用');
+            console.log('✈️ 标题右侧飞机从左至右飞入动画已启用');
+        })();
+    </script>
+
+</body>
+</html>
